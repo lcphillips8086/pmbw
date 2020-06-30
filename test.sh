@@ -1,0 +1,1 @@
+./pmbw -P 1 -f ScanRead32PtrUnrollLoop -f ScanRead64PtrUnrollLoop -f ScanRead128PtrUnrollLoop -f ScanRead256PtrUnrollLoop -f SkipRead64BPtrUnrollLoop -f SkipRead32BPtrUnrollLoop -f SkipRead16BPtrUnrollLoop -f SkipRead128b64BPtrUnrollLoop -f SkipRead128b32BPtrUnrollLoop

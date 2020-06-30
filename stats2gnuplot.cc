@@ -100,6 +100,12 @@ static const char* funclist[] =
     "PermRead32SimpleLoop",
     "PermRead32UnrollLoop",
     "cPermRead32SimpleLoop",
+    
+    "SkipRead64BPtrUnrollLoop",
+    "SkipRead32BPtrUnrollLoop",
+    "SkipRead16BPtrUnrollLoop",
+    "SkipRead128b32BPtrUnrollLoop",
+    "SkipRead128b64BPtrUnrollLoop",
 
     NULL
 };
@@ -426,13 +432,26 @@ void plot_data_latency(std::ostream& datass, const Result& r)
            << r.rate * 1e9 << "\n";
 }
 
+/// plot the access time in nanoseconds per cacheline for each Result
+/// assuming 64-byte cachelines and stride <= 64 bytes
+void plot_cacheline_time(std::ostream& datass, const Result& r)
+{
+    datass << std::setprecision(20)
+           << log(r.testsize) / log(2) << "\t"
+           << r.time / (r.testsize * r.repeats / 64.0) * 1e9 << "\n";
+}
+
 /// show only sequential results with procs = 1
 bool filter_sequential(const Result& r) {
     return (r.nthreads == 1);
 }
 
+bool filter_sequential_permutation(const Result& r) {
+    return (r.nthreads == 1) && ((r.funcname.find("Perm") != std::string::npos) ||  (r.funcname.find("Ptr") != std::string::npos)) && (r.funcname.find("Read") != std::string::npos) && (r.funcname.find("Unroll") != std::string::npos);
+}
+
 bool filter_sequential_nonpermutation(const Result& r) {
-    return (r.nthreads == 1) && (r.funcname.find("Perm") == std::string::npos);
+    return (r.nthreads == 1) && (r.funcname.find("Perm") == std::string::npos) && (r.funcname.find("Read") != std::string::npos) && (r.funcname.find("PtrUnroll") != std::string::npos);
 }
 
 bool filter_sequential_64bit_reads(const Result& r) {
@@ -446,22 +465,27 @@ void plot_sequential(std::ostream& os)
     P("set title '" << g_hostname << " - One Thread Memory Bandwidth'");
     P("set ylabel 'Bandwidth [GiB/s]'");
     P("set yrange [0:*]");
-    plot_funcname_iteration(os, filter_sequential, plot_data_bandwidth);
+    plot_funcname_iteration(os, filter_sequential_nonpermutation, plot_data_bandwidth);
 
     P("set key top left");
     P("set title '" << g_hostname << " - One Thread Memory Latency (Access Time)'");
     P("set ylabel 'Access Time [ns]'");
-    plot_funcname_iteration(os, filter_sequential, plot_data_latency);
+    plot_funcname_iteration(os, filter_sequential_permutation, plot_data_latency);
 
     P("set key top left");
     P("set title '" << g_hostname << " - One Thread Memory Latency (excluding Permutation)'");
     P("set ylabel 'Access Time [ns]'");
     plot_funcname_iteration(os, filter_sequential_nonpermutation, plot_data_latency);
 
-    P("set key top right");
-    P("set title '" << g_hostname << " - One Thread Memory Bandwidth (only 64-bit Reads)'");
-    P("set ylabel 'Bandwidth [GiB/s]'");
-    plot_funcname_iteration(os, filter_sequential_64bit_reads, plot_data_bandwidth);
+    P("set key top left");
+    P("set title '" << g_hostname << " - One Thread Cacheline Time (excluding Permutation)'");
+    P("set ylabel 'Cacheline Time [ns]'");
+    plot_funcname_iteration(os, filter_sequential_nonpermutation, plot_cacheline_time);
+
+    //P("set key top right");
+    //P("set title '" << g_hostname << " - One Thread Memory Bandwidth (only 64-bit Reads)'");
+    //P("set ylabel 'Bandwidth [GiB/s]'");
+    //plot_funcname_iteration(os, filter_sequential_64bit_reads, plot_data_bandwidth);
 }
 
 /// Plot procedure: iterate over results, filter them to show only one funcname
@@ -631,7 +655,7 @@ void output_gnuplot(std::ostream& os)
     P("set label 1 'pmbw " VERSION "' right at screen 0.98, screen 0.02");
 
     plot_sequential(os);
-    plot_parallel(os);
+    //plot_parallel(os);
 }
 
 /// main: read stdin or from all files on the command line
