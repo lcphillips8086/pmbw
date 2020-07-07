@@ -106,6 +106,17 @@ static const char* funclist[] =
     "SkipRead16BPtrUnrollLoop",
     "SkipRead128b32BPtrUnrollLoop",
     "SkipRead128b64BPtrUnrollLoop",
+    
+    "SkipRead64BPtrUnrollLoopPf",
+    "SkipRead32BPtrUnrollLoopPf",
+    "SkipRead16BPtrUnrollLoopPf",
+    "SkipRead128b32BPtrUnrollLoopPf",
+    "SkipRead128b64BPtrUnrollLoopPf",
+    
+    "ScanRead256PtrUnrollLoopPf",
+    "ScanRead128PtrUnrollLoopPf",
+    "ScanRead64PtrUnrollLoopPf",
+    "ScanRead32PtrUnrollLoopPf",
 
     NULL
 };
@@ -416,12 +427,12 @@ void plot_funcname_iteration(std::ostream& os, filter_type filter, data_print_fu
     join_plotlines(os, plotlines, datass);
 }
 
-/// plot the bandwidth in GiB/s for each Result
+/// plot the bandwidth in GB/s for each Result
 void plot_data_bandwidth(std::ostream& datass, const Result& r)
 {
     datass << std::setprecision(20)
            << log(r.testsize) / log(2) << "\t"
-           << r.bandwidth / 1024/1024/1024 << "\n";
+           << r.bandwidth / 1000000000 << "\n";
 }
 
 /// plot the latency (access time) in nanoseconds for each Result
@@ -441,21 +452,77 @@ void plot_cacheline_time(std::ostream& datass, const Result& r)
            << r.time / (r.testsize * r.repeats / 64.0) * 1e9 << "\n";
 }
 
+bool name_in_array(const std::string& name, const char *array[]) {
+    for (; *array; array++) {
+        if (name == *array)
+            return true;
+    }
+    return false;
+}
+
+static const char* basic[] =
+{
+    "ScanRead256PtrUnrollLoop",
+    "ScanRead128PtrUnrollLoop",
+    "ScanRead64PtrUnrollLoop",
+    "ScanRead32PtrUnrollLoop",
+
+    NULL
+};
+
+static const char* perm[] =
+{
+    "PermRead64UnrollLoop",
+    "PermRead32UnrollLoop",
+    NULL
+};
+
+static const char* skip[] =
+{
+    "ScanRead256PtrUnrollLoop",
+    "ScanRead128PtrUnrollLoop",
+    
+    "SkipRead64BPtrUnrollLoop",
+    "SkipRead32BPtrUnrollLoop",
+    "SkipRead16BPtrUnrollLoop",
+    "SkipRead128b32BPtrUnrollLoop",
+    "SkipRead128b64BPtrUnrollLoop",
+    NULL
+};
+
+static const char* prefetch[] =
+{
+    "ScanRead256PtrUnrollLoop",
+    "ScanRead128PtrUnrollLoop",
+    "ScanRead64PtrUnrollLoop",
+    "ScanRead32PtrUnrollLoop",
+    
+    "ScanRead256PtrUnrollLoopPf",
+    "ScanRead128PtrUnrollLoopPf",
+    "ScanRead64PtrUnrollLoopPf",
+    "ScanRead32PtrUnrollLoopPf",
+    NULL
+};
+
+bool filter_basic(const Result& r) {
+    return (r.nthreads == 1) && name_in_array(r.funcname, basic);
+}
+
+bool filter_perm(const Result& r) {
+    return (r.nthreads == 1) && name_in_array(r.funcname, perm);
+}
+
+bool filter_skip(const Result& r) {
+    return (r.nthreads == 1) && name_in_array(r.funcname, skip);
+}
+
+bool filter_prefetch(const Result& r) {
+    return (r.nthreads == 1) && name_in_array(r.funcname, prefetch);
+}
+
 /// show only sequential results with procs = 1
 bool filter_sequential(const Result& r) {
     return (r.nthreads == 1);
-}
-
-bool filter_sequential_permutation(const Result& r) {
-    return (r.nthreads == 1) && ((r.funcname.find("Perm") != std::string::npos) ||  (r.funcname.find("Ptr") != std::string::npos)) && (r.funcname.find("Read") != std::string::npos) && (r.funcname.find("Unroll") != std::string::npos);
-}
-
-bool filter_sequential_nonpermutation(const Result& r) {
-    return (r.nthreads == 1) && (r.funcname.find("Perm") == std::string::npos) && (r.funcname.find("Read") != std::string::npos) && (r.funcname.find("PtrUnroll") != std::string::npos);
-}
-
-bool filter_sequential_64bit_reads(const Result& r) {
-    return (r.nthreads == 1) && (r.funcname.find("Read64") == std::string::npos);
 }
 
 /// Plots showing just sequential memory bandwidth and latency
@@ -463,29 +530,41 @@ void plot_sequential(std::ostream& os)
 {
     P("set key top right");
     P("set title '" << g_hostname << " - One Thread Memory Bandwidth'");
-    P("set ylabel 'Bandwidth [GiB/s]'");
+    P("set ylabel 'Bandwidth [GB/s]'");
     P("set yrange [0:*]");
-    plot_funcname_iteration(os, filter_sequential_nonpermutation, plot_data_bandwidth);
+    plot_funcname_iteration(os, filter_basic, plot_data_bandwidth);
+    
+    P("set key top left");
+    P("set title '" << g_hostname << " - One Thread Time per 64B Cacheline'");
+    P("set ylabel 'Cacheline Time [ns]'");
+    plot_funcname_iteration(os, filter_basic, plot_cacheline_time);
+    
+    P("set key top right");
+    P("set title '" << g_hostname << " - One Thread Memory Bandwidth (+Strided Access)'");
+    P("set ylabel 'Bandwidth [GB/s]'");
+    P("set yrange [0:*]");
+    plot_funcname_iteration(os, filter_skip, plot_data_bandwidth);
+    
+    P("set key top left");
+    P("set title '" << g_hostname << " - One Thread Time per 64B Cacheline (+Strided Access)'");
+    P("set ylabel 'Cacheline Time [ns]'");
+    plot_funcname_iteration(os, filter_skip, plot_cacheline_time);
+    
+    P("set key top right");
+    P("set title '" << g_hostname << " - One Thread Memory Bandwidth (+Prefetching)'");
+    P("set ylabel 'Bandwidth [GB/s]'");
+    P("set yrange [0:*]");
+    plot_funcname_iteration(os, filter_prefetch, plot_data_bandwidth);
+    
+    P("set key top left");
+    P("set title '" << g_hostname << " - One Thread Time per 64B Cacheline (+Prefetching)'");
+    P("set ylabel 'Cacheline Time [ns]'");
+    plot_funcname_iteration(os, filter_prefetch, plot_cacheline_time);
 
     P("set key top left");
     P("set title '" << g_hostname << " - One Thread Memory Latency (Access Time)'");
     P("set ylabel 'Access Time [ns]'");
-    plot_funcname_iteration(os, filter_sequential_permutation, plot_data_latency);
-
-    P("set key top left");
-    P("set title '" << g_hostname << " - One Thread Memory Latency (excluding Permutation)'");
-    P("set ylabel 'Access Time [ns]'");
-    plot_funcname_iteration(os, filter_sequential_nonpermutation, plot_data_latency);
-
-    P("set key top left");
-    P("set title '" << g_hostname << " - One Thread Cacheline Time (excluding Permutation)'");
-    P("set ylabel 'Cacheline Time [ns]'");
-    plot_funcname_iteration(os, filter_sequential_nonpermutation, plot_cacheline_time);
-
-    //P("set key top right");
-    //P("set title '" << g_hostname << " - One Thread Memory Bandwidth (only 64-bit Reads)'");
-    //P("set ylabel 'Bandwidth [GiB/s]'");
-    //plot_funcname_iteration(os, filter_sequential_64bit_reads, plot_data_bandwidth);
+    plot_funcname_iteration(os, filter_perm, plot_data_latency);
 }
 
 /// Plot procedure: iterate over results, filter them to show only one funcname

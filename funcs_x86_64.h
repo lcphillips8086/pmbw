@@ -172,6 +172,45 @@ void ScanRead64PtrUnrollLoop(char* memarea, size_t size, size_t repeats)
 
 REGISTER(ScanRead64PtrUnrollLoop, 8, 8, 16);
 
+// 64-bit reader in an unrolled loop with prefetch (Assembler version)
+void ScanRead64PtrUnrollLoopPf(char* memarea, size_t size, size_t repeats)
+{
+    asm volatile(
+        "1: \n" // start of repeat loop
+        "mov    %[memarea], %%rcx \n"   // rcx = reset loop iterator
+        "2: \n" // start of read loop
+        "prefetcht0    512(%%rcx) \n"
+        "mov    0*8(%%rcx), %%rax \n"
+        "mov    1*8(%%rcx), %%rax \n"
+        "mov    2*8(%%rcx), %%rax \n"
+        "mov    3*8(%%rcx), %%rax \n"
+        "mov    4*8(%%rcx), %%rax \n"
+        "mov    5*8(%%rcx), %%rax \n"
+        "mov    6*8(%%rcx), %%rax \n"
+        "mov    7*8(%%rcx), %%rax \n"
+        "prefetcht0    576(%%rcx) \n"
+        "mov    8*8(%%rcx), %%rax \n"
+        "mov    9*8(%%rcx), %%rax \n"
+        "mov    10*8(%%rcx), %%rax \n"
+        "mov    11*8(%%rcx), %%rax \n"
+        "mov    12*8(%%rcx), %%rax \n"
+        "mov    13*8(%%rcx), %%rax \n"
+        "mov    14*8(%%rcx), %%rax \n"
+        "mov    15*8(%%rcx), %%rax \n"
+        "add    $16*8, %%rcx \n"
+        // test read loop condition
+        "cmp    %[end], %%rcx \n"       // compare to end iterator
+        "jb     2b \n"
+        // test repeat loop condition
+        "dec    %[repeats] \n"          // until repeats = 0
+        "jnz    1b \n"
+        : [repeats] "+r" (repeats)
+        : [memarea] "r" (memarea), [end] "r" (memarea+size)
+        : "rax", "rcx", "cc", "memory");
+}
+
+REGISTER(ScanRead64PtrUnrollLoopPf, 8, 8, 16);
+
 // 64-bit reader in an unrolled loop, stride=64 (Assembler version)
 void SkipRead64BPtrUnrollLoop(char* memarea, size_t size, size_t repeats)
 {
@@ -210,6 +249,59 @@ void SkipRead64BPtrUnrollLoop(char* memarea, size_t size, size_t repeats)
 REGISTER(SkipRead64BPtrUnrollLoop, 8, 64, 16);
 
 // 64-bit reader in an unrolled loop, stride=64 (Assembler version)
+void SkipRead64BPtrUnrollLoopPf(char* memarea, size_t size, size_t repeats)
+{
+    asm volatile(
+        "1: \n" // start of repeat loop
+        "mov    %[memarea], %%rcx \n"   // rcx = reset loop iterator
+        "2: \n" // start of read loop
+        "prefetcht0    512(%%rcx) \n"
+        "mov    0*64(%%rcx), %%rax \n"
+        "prefetcht0    576(%%rcx) \n"
+        "mov    1*64(%%rcx), %%rax \n"
+        "prefetcht0    640(%%rcx) \n"
+        "mov    2*64(%%rcx), %%rax \n"
+        "prefetcht0    704(%%rcx) \n"
+        "mov    3*64(%%rcx), %%rax \n"
+        "prefetcht0    768(%%rcx) \n"
+        "mov    4*64(%%rcx), %%rax \n"
+        "prefetcht0    832(%%rcx) \n"
+        "mov    5*64(%%rcx), %%rax \n"
+        "prefetcht0    896(%%rcx) \n"
+        "mov    6*64(%%rcx), %%rax \n"
+        "prefetcht0    960(%%rcx) \n"
+        "mov    7*64(%%rcx), %%rax \n"
+        "prefetcht0    1024(%%rcx) \n"
+        "mov    8*64(%%rcx), %%rax \n"
+        "prefetcht0    1088(%%rcx) \n"
+        "mov    9*64(%%rcx), %%rax \n"
+        "prefetcht0    1152(%%rcx) \n"
+        "mov    10*64(%%rcx), %%rax \n"
+        "prefetcht0    1216(%%rcx) \n"
+        "mov    11*64(%%rcx), %%rax \n"
+        "prefetcht0    1280(%%rcx) \n"
+        "mov    12*64(%%rcx), %%rax \n"
+        "prefetcht0    1344(%%rcx) \n"
+        "mov    13*64(%%rcx), %%rax \n"
+        "prefetcht0    1408(%%rcx) \n"
+        "mov    14*64(%%rcx), %%rax \n"
+        "prefetcht0    1472(%%rcx) \n"
+        "mov    15*64(%%rcx), %%rax \n"
+        "add    $16*64, %%rcx \n"
+        // test read loop condition
+        "cmp    %[end], %%rcx \n"       // compare to end iterator
+        "jb     2b \n"
+        // test repeat loop condition
+        "dec    %[repeats] \n"          // until repeats = 0
+        "jnz    1b \n"
+        : [repeats] "+r" (repeats)
+        : [memarea] "r" (memarea), [end] "r" (memarea+size)
+        : "rax", "rcx", "cc", "memory");
+}
+
+REGISTER(SkipRead64BPtrUnrollLoopPf, 8, 64, 16);
+
+// 64-bit reader in an unrolled loop, stride=32 (Assembler version)
 void SkipRead32BPtrUnrollLoop(char* memarea, size_t size, size_t repeats)
 {
     asm volatile(
@@ -245,6 +337,52 @@ void SkipRead32BPtrUnrollLoop(char* memarea, size_t size, size_t repeats)
 }
 
 REGISTER(SkipRead32BPtrUnrollLoop, 8, 32, 16);
+
+
+// 64-bit reader in an unrolled loop, stride=32 with prefetch (Assembler version)
+void SkipRead32BPtrUnrollLoopPf(char* memarea, size_t size, size_t repeats)
+{
+    asm volatile(
+        "1: \n" // start of repeat loop
+        "mov    %[memarea], %%rcx \n"   // rcx = reset loop iterator
+        "2: \n" // start of read loop
+        "prefetcht0    512(%%rcx) \n"
+        "mov    0*32(%%rcx), %%rax \n"
+        "mov    1*32(%%rcx), %%rax \n"
+        "prefetcht0    576(%%rcx) \n"
+        "mov    2*32(%%rcx), %%rax \n"
+        "mov    3*32(%%rcx), %%rax \n"
+        "prefetcht0    640(%%rcx) \n"
+        "mov    4*32(%%rcx), %%rax \n"
+        "mov    5*32(%%rcx), %%rax \n"
+        "prefetcht0    704(%%rcx) \n"
+        "mov    6*32(%%rcx), %%rax \n"
+        "mov    7*32(%%rcx), %%rax \n"
+        "prefetcht0    768(%%rcx) \n"
+        "mov    8*32(%%rcx), %%rax \n"
+        "mov    9*32(%%rcx), %%rax \n"
+        "prefetcht0    832(%%rcx) \n"
+        "mov    10*32(%%rcx), %%rax \n"
+        "mov    11*32(%%rcx), %%rax \n"
+        "prefetcht0    896(%%rcx) \n"
+        "mov    12*32(%%rcx), %%rax \n"
+        "mov    13*32(%%rcx), %%rax \n"
+        "prefetcht0    960(%%rcx) \n"
+        "mov    14*32(%%rcx), %%rax \n"
+        "mov    15*32(%%rcx), %%rax \n"
+        "add    $16*32, %%rcx \n"
+        // test read loop condition
+        "cmp    %[end], %%rcx \n"       // compare to end iterator
+        "jb     2b \n"
+        // test repeat loop condition
+        "dec    %[repeats] \n"          // until repeats = 0
+        "jnz    1b \n"
+        : [repeats] "+r" (repeats)
+        : [memarea] "r" (memarea), [end] "r" (memarea+size)
+        : "rax", "rcx", "cc", "memory");
+}
+
+REGISTER(SkipRead32BPtrUnrollLoopPf, 8, 32, 16);
 
 // 64-bit reader in an unrolled loop, stride=16 (Assembler version)
 void SkipRead16BPtrUnrollLoop(char* memarea, size_t size, size_t repeats)
@@ -282,6 +420,47 @@ void SkipRead16BPtrUnrollLoop(char* memarea, size_t size, size_t repeats)
 }
 
 REGISTER(SkipRead16BPtrUnrollLoop, 8, 16, 16);
+
+// 64-bit reader in an unrolled loop, stride=16 with prefetch (Assembler version)
+void SkipRead16BPtrUnrollLoopPf(char* memarea, size_t size, size_t repeats)
+{
+    asm volatile(
+        "1: \n" // start of repeat loop
+        "mov    %[memarea], %%rcx \n"   // rcx = reset loop iterator
+        "2: \n" // start of read loop
+        "prefetcht0    512(%%rcx) \n"
+        "mov    0*16(%%rcx), %%rax \n"
+        "mov    1*16(%%rcx), %%rax \n"
+        "mov    2*16(%%rcx), %%rax \n"
+        "mov    3*16(%%rcx), %%rax \n"
+        "prefetcht0    576(%%rcx) \n"
+        "mov    4*16(%%rcx), %%rax \n"
+        "mov    5*16(%%rcx), %%rax \n"
+        "mov    6*16(%%rcx), %%rax \n"
+        "mov    7*16(%%rcx), %%rax \n"
+        "prefetcht0    640(%%rcx) \n"
+        "mov    8*16(%%rcx), %%rax \n"
+        "mov    9*16(%%rcx), %%rax \n"
+        "mov    10*16(%%rcx), %%rax \n"
+        "mov    11*16(%%rcx), %%rax \n"
+        "prefetcht0    704(%%rcx) \n"
+        "mov    12*16(%%rcx), %%rax \n"
+        "mov    13*16(%%rcx), %%rax \n"
+        "mov    14*16(%%rcx), %%rax \n"
+        "mov    15*16(%%rcx), %%rax \n"
+        "add    $16*16, %%rcx \n"
+        // test read loop condition
+        "cmp    %[end], %%rcx \n"       // compare to end iterator
+        "jb     2b \n"
+        // test repeat loop condition
+        "dec    %[repeats] \n"          // until repeats = 0
+        "jnz    1b \n"
+        : [repeats] "+r" (repeats)
+        : [memarea] "r" (memarea), [end] "r" (memarea+size)
+        : "rax", "rcx", "cc", "memory");
+}
+
+REGISTER(SkipRead16BPtrUnrollLoopPf, 8, 16, 16);
 
 // -----------------------------------------------------------------------------
 
@@ -420,58 +599,6 @@ void ScanRead64IndexUnrollLoop(char* memarea, size_t size, size_t repeats)
 }
 
 REGISTER(ScanRead64IndexUnrollLoop, 8, 8, 16);
-
-// -----------------------------------------------------------------------------
-
-#if 0
-static const int skiplen64 = 64; // one item per cache line
-
-// 64-bit skipping writer in a simple loop (C version)
-void cSkipWrite64PtrSimpleLoop(char* memarea, size_t size, size_t repeats)
-{
-    uint64_t* begin = (uint64_t*)memarea;
-    uint64_t* end = begin + size / sizeof(uint64_t);
-    uint64_t value = 0xC0FFEEEEBABE0000;
-
-    do {
-        uint64_t* p = begin;
-        do {
-            *p++ = value;
-            p += skiplen64 / sizeof(uint64_t);
-        }
-        while (p < end);
-    }
-    while (--repeats != 0);
-}
-
-REGISTER(cSkipWrite64PtrSimpleLoop, 8, 8, 1);
-
-// 64-bit skipping writer in a simple loop (Assembler version)
-void SkipWrite64PtrSimpleLoop(char* memarea, size_t size, size_t repeats)
-{
-    asm volatile(
-        "mov    $0xC0FFEEEEBABE0000, %%rax \n" // rax = test value
-        "mov    %[memarea], %%rsi \n"   // rsi = memarea
-        "mov    %[size], %%rdi \n"
-        "add    %%rsi, %%rdi \n"        // rdi = memarea+size
-        "1: \n" // start of repeat loop
-        "mov    %%rsi, %%rcx \n"        // rcx = reset loop iterator
-        "2: \n" // start of write loop
-        "mov    %%rax, (%%rcx) \n"
-        "add    $8, %%rcx \n"
-        // test write loop condition
-        "cmp    %%rdi, %%rcx \n"        // compare to end iterator
-        "jb     2b \n"
-        // test repeat loop condition
-        "dec    %[repeats] \n"          // until repeats = 0
-        "jnz    1b \n"
-        : [repeats] "+r" (repeats)
-        : [memarea] "g" (memarea), [size] "g" (size)
-        : "rax", "rcx", "rsi", "rdi", "cc", "memory");
-}
-
-REGISTER(SkipWrite64PtrSimpleLoop, 8, 8, 1);
-#endif
 
 // ****************************************************************************
 // ----------------------------------------------------------------------------
@@ -627,6 +754,47 @@ void ScanRead128PtrUnrollLoop(char* memarea, size_t size, size_t repeats)
 
 REGISTER_CPUFEAT(ScanRead128PtrUnrollLoop, "sse", 16, 16, 16);
 
+// 128-bit reader in an unrolled loop with prefetch (Assembler version)
+void ScanRead128PtrUnrollLoopPf(char* memarea, size_t size, size_t repeats)
+{
+    asm volatile(
+        "1: \n" // start of repeat loop
+        "mov    %[memarea], %%rax \n"   // rax = reset loop iterator
+        "2: \n" // start of read loop
+        "prefetcht0    512(%%rax) \n"
+        "movdqa 0*16(%%rax), %%xmm0 \n"
+        "movdqa 1*16(%%rax), %%xmm0 \n"
+        "movdqa 2*16(%%rax), %%xmm0 \n"
+        "movdqa 3*16(%%rax), %%xmm0 \n"
+        "prefetcht0    576(%%rax) \n"
+        "movdqa 4*16(%%rax), %%xmm0 \n"
+        "movdqa 5*16(%%rax), %%xmm0 \n"
+        "movdqa 6*16(%%rax), %%xmm0 \n"
+        "movdqa 7*16(%%rax), %%xmm0 \n"
+        "prefetcht0    640(%%rax) \n"
+        "movdqa 8*16(%%rax), %%xmm0 \n"
+        "movdqa 9*16(%%rax), %%xmm0 \n"
+        "movdqa 10*16(%%rax), %%xmm0 \n"
+        "movdqa 11*16(%%rax), %%xmm0 \n"
+        "prefetcht0    704(%%rax) \n"
+        "movdqa 12*16(%%rax), %%xmm0 \n"
+        "movdqa 13*16(%%rax), %%xmm0 \n"
+        "movdqa 14*16(%%rax), %%xmm0 \n"
+        "movdqa 15*16(%%rax), %%xmm0 \n"
+        "add    $16*16, %%rax \n"
+        // test read loop condition
+        "cmp    %[end], %%rax \n"       // compare to end iterator
+        "jb     2b \n"
+        // test repeat loop condition
+        "dec    %[repeats] \n"          // until repeats = 0
+        "jnz    1b \n"
+        : [repeats] "+r" (repeats)
+        : [memarea] "r" (memarea), [end] "r" (memarea+size)
+        : "rax", "xmm0", "cc", "memory");
+}
+
+REGISTER_CPUFEAT(ScanRead128PtrUnrollLoopPf, "sse", 16, 16, 16);
+
 // 128-bit reader in an unrolled loop (Assembler version)
 void SkipRead128b32BPtrUnrollLoop(char* memarea, size_t size, size_t repeats)
 {
@@ -664,6 +832,51 @@ void SkipRead128b32BPtrUnrollLoop(char* memarea, size_t size, size_t repeats)
 
 REGISTER_CPUFEAT(SkipRead128b32BPtrUnrollLoop, "sse", 16, 32, 16);
 
+// 128-bit reader in an unrolled loop, stride=32, with prefetch (Assembler version)
+void SkipRead128b32BPtrUnrollLoopPf(char* memarea, size_t size, size_t repeats)
+{
+    asm volatile(
+        "1: \n" // start of repeat loop
+        "mov    %[memarea], %%rax \n"   // rax = reset loop iterator
+        "2: \n" // start of read loop
+        "prefetcht0    512(%%rax) \n"
+        "movdqa 0*32(%%rax), %%xmm0 \n"
+        "movdqa 1*32(%%rax), %%xmm0 \n"
+        "prefetcht0    576(%%rax) \n"
+        "movdqa 2*32(%%rax), %%xmm0 \n"
+        "movdqa 3*32(%%rax), %%xmm0 \n"
+        "prefetcht0    640(%%rax) \n"
+        "movdqa 4*32(%%rax), %%xmm0 \n"
+        "movdqa 5*32(%%rax), %%xmm0 \n"
+        "prefetcht0    704(%%rax) \n"
+        "movdqa 6*32(%%rax), %%xmm0 \n"
+        "movdqa 7*32(%%rax), %%xmm0 \n"
+        "prefetcht0    768(%%rax) \n"
+        "movdqa 8*32(%%rax), %%xmm0 \n"
+        "movdqa 9*32(%%rax), %%xmm0 \n"
+        "prefetcht0    832(%%rax) \n"
+        "movdqa 10*32(%%rax), %%xmm0 \n"
+        "movdqa 11*32(%%rax), %%xmm0 \n"
+        "prefetcht0    896(%%rax) \n"
+        "movdqa 12*32(%%rax), %%xmm0 \n"
+        "movdqa 13*32(%%rax), %%xmm0 \n"
+        "prefetcht0    960(%%rax) \n"
+        "movdqa 14*32(%%rax), %%xmm0 \n"
+        "movdqa 15*32(%%rax), %%xmm0 \n"
+        "add    $16*32, %%rax \n"
+        // test read loop condition
+        "cmp    %[end], %%rax \n"       // compare to end iterator
+        "jb     2b \n"
+        // test repeat loop condition
+        "dec    %[repeats] \n"          // until repeats = 0
+        "jnz    1b \n"
+        : [repeats] "+r" (repeats)
+        : [memarea] "r" (memarea), [end] "r" (memarea+size)
+        : "rax", "xmm0", "cc", "memory");
+}
+
+REGISTER_CPUFEAT(SkipRead128b32BPtrUnrollLoopPf, "sse", 16, 32, 16);
+
 // 128-bit reader in an unrolled loop (Assembler version)
 void SkipRead128b64BPtrUnrollLoop(char* memarea, size_t size, size_t repeats)
 {
@@ -700,6 +913,59 @@ void SkipRead128b64BPtrUnrollLoop(char* memarea, size_t size, size_t repeats)
 }
 
 REGISTER_CPUFEAT(SkipRead128b64BPtrUnrollLoop, "sse", 16, 64, 16);
+
+// 128-bit reader in an unrolled loop, stride=64, with prefetch (Assembler version)
+void SkipRead128b64BPtrUnrollLoopPf(char* memarea, size_t size, size_t repeats)
+{
+    asm volatile(
+        "1: \n" // start of repeat loop
+        "mov    %[memarea], %%rax \n"   // rax = reset loop iterator
+        "2: \n" // start of read loop
+        "prefetcht0    512(%%rax) \n"
+        "movdqa 0*64(%%rax), %%xmm0 \n"
+        "prefetcht0    576(%%rax) \n"
+        "movdqa 1*64(%%rax), %%xmm0 \n"
+        "prefetcht0    640(%%rax) \n"
+        "movdqa 2*64(%%rax), %%xmm0 \n"
+        "prefetcht0    704(%%rax) \n"
+        "movdqa 3*64(%%rax), %%xmm0 \n"
+        "prefetcht0    768(%%rax) \n"
+        "movdqa 4*64(%%rax), %%xmm0 \n"
+        "prefetcht0    832(%%rax) \n"
+        "movdqa 5*64(%%rax), %%xmm0 \n"
+        "prefetcht0    896(%%rax) \n"
+        "movdqa 6*64(%%rax), %%xmm0 \n"
+        "prefetcht0    960(%%rax) \n"
+        "movdqa 7*64(%%rax), %%xmm0 \n"
+        "prefetcht0    1024(%%rax) \n"
+        "movdqa 8*64(%%rax), %%xmm0 \n"
+        "prefetcht0    1088(%%rax) \n"
+        "movdqa 9*64(%%rax), %%xmm0 \n"
+        "prefetcht0    1152(%%rax) \n"
+        "movdqa 10*64(%%rax), %%xmm0 \n"
+        "prefetcht0    1216(%%rax) \n"
+        "movdqa 11*64(%%rax), %%xmm0 \n"
+        "prefetcht0    1280(%%rax) \n"
+        "movdqa 12*64(%%rax), %%xmm0 \n"
+        "prefetcht0    1344(%%rax) \n"
+        "movdqa 13*64(%%rax), %%xmm0 \n"
+        "prefetcht0    1408(%%rax) \n"
+        "movdqa 14*64(%%rax), %%xmm0 \n"
+        "prefetcht0    1472(%%rax) \n"
+        "movdqa 15*64(%%rax), %%xmm0 \n"
+        "add    $16*64, %%rax \n"
+        // test read loop condition
+        "cmp    %[end], %%rax \n"       // compare to end iterator
+        "jb     2b \n"
+        // test repeat loop condition
+        "dec    %[repeats] \n"          // until repeats = 0
+        "jnz    1b \n"
+        : [repeats] "+r" (repeats)
+        : [memarea] "r" (memarea), [end] "r" (memarea+size)
+        : "rax", "xmm0", "cc", "memory");
+}
+
+REGISTER_CPUFEAT(SkipRead128b64BPtrUnrollLoopPf, "sse", 16, 64, 16);
 
 // ****************************************************************************
 // ----------------------------------------------------------------------------
@@ -833,6 +1099,50 @@ void ScanRead256PtrUnrollLoop(char* memarea, size_t size, size_t repeats)
 
 REGISTER_CPUFEAT(ScanRead256PtrUnrollLoop, "avx", 32, 32, 16);
 
+// 256-bit reader in an unrolled loop with prefetch (Assembler version)
+void ScanRead256PtrUnrollLoopPf(char* memarea, size_t size, size_t repeats)
+{
+    asm volatile(
+        "1: \n" // start of repeat loop
+        "mov    %[memarea], %%rax \n"   // rax = reset loop iterator
+        "2: \n" // start of read loop
+        "prefetcht0    512(%%rax) \n"
+        "vmovdqa 0*32(%%rax), %%ymm0 \n"
+        "vmovdqa 1*32(%%rax), %%ymm0 \n"
+        "prefetcht0    576(%%rax) \n"
+        "vmovdqa 2*32(%%rax), %%ymm0 \n"
+        "vmovdqa 3*32(%%rax), %%ymm0 \n"
+        "prefetcht0    640(%%rax) \n"
+        "vmovdqa 4*32(%%rax), %%ymm0 \n"
+        "vmovdqa 5*32(%%rax), %%ymm0 \n"
+        "prefetcht0    704(%%rax) \n"
+        "vmovdqa 6*32(%%rax), %%ymm0 \n"
+        "vmovdqa 7*32(%%rax), %%ymm0 \n"
+        "prefetcht0    768(%%rax) \n"
+        "vmovdqa 8*32(%%rax), %%ymm0 \n"
+        "vmovdqa 9*32(%%rax), %%ymm0 \n"
+        "prefetcht0    832(%%rax) \n"
+        "vmovdqa 10*32(%%rax), %%ymm0 \n"
+        "vmovdqa 11*32(%%rax), %%ymm0 \n"
+        "prefetcht0    896(%%rax) \n"
+        "vmovdqa 12*32(%%rax), %%ymm0 \n"
+        "vmovdqa 13*32(%%rax), %%ymm0 \n"
+        "prefetcht0    960(%%rax) \n"
+        "vmovdqa 14*32(%%rax), %%ymm0 \n"
+        "vmovdqa 15*32(%%rax), %%ymm0 \n"
+        "add    $16*32, %%rax \n"
+        // test read loop condition
+        "cmp    %[end], %%rax \n"       // compare to end iterator
+        "jb     2b \n"
+        // test repeat loop condition
+        "dec    %[repeats] \n"          // until repeats = 0
+        "jnz    1b \n"
+        : [repeats] "+r" (repeats)
+        : [memarea] "r" (memarea), [end] "r" (memarea+size)
+        : "rax", "xmm0", "cc", "memory");
+}
+
+REGISTER_CPUFEAT(ScanRead256PtrUnrollLoopPf, "avx", 32, 32, 16);
 // ****************************************************************************
 // ----------------------------------------------------------------------------
 // 32-bit Operations
@@ -959,6 +1269,43 @@ void ScanRead32PtrUnrollLoop(char* memarea, size_t size, size_t repeats)
 
 REGISTER(ScanRead32PtrUnrollLoop, 4, 4, 16);
 
+// 32-bit reader in an unrolled loop with prefetch (Assembler version)
+void ScanRead32PtrUnrollLoopPf(char* memarea, size_t size, size_t repeats)
+{
+    asm volatile(
+        "1: \n" // start of repeat loop
+        "mov    %[memarea], %%rcx \n"   // rcx = reset loop iterator
+        "2: \n" // start of read loop
+        "prefetcht0    512(%%rcx) \n"
+        "movl   0*4(%%rcx), %%eax \n"
+        "movl   1*4(%%rcx), %%eax \n"
+        "movl   2*4(%%rcx), %%eax \n"
+        "movl   3*4(%%rcx), %%eax \n"
+        "movl   4*4(%%rcx), %%eax \n"
+        "movl   5*4(%%rcx), %%eax \n"
+        "movl   6*4(%%rcx), %%eax \n"
+        "movl   7*4(%%rcx), %%eax \n"
+        "movl   8*4(%%rcx), %%eax \n"
+        "movl   9*4(%%rcx), %%eax \n"
+        "movl   10*4(%%rcx), %%eax \n"
+        "movl   11*4(%%rcx), %%eax \n"
+        "movl   12*4(%%rcx), %%eax \n"
+        "movl   13*4(%%rcx), %%eax \n"
+        "movl   14*4(%%rcx), %%eax \n"
+        "movl   15*4(%%rcx), %%eax \n"
+        "add    $16*4, %%rcx \n"
+        // test read loop condition
+        "cmp    %[end], %%rcx \n"       // compare to end iterator
+        "jb     2b \n"
+        // test repeat loop condition
+        "dec    %[repeats] \n"          // until repeats = 0
+        "jnz    1b \n"
+        : [repeats] "+r" (repeats)
+        : [memarea] "r" (memarea), [end] "r" (memarea+size)
+        : "eax", "rcx", "cc", "memory");
+}
+
+REGISTER(ScanRead32PtrUnrollLoopPf, 4, 4, 16);
 // ****************************************************************************
 // ----------------------------------------------------------------------------
 // Permutation Walking
